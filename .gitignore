@@ -1,3 +1,7 @@
+# Unsloth models / adapters / checkpoint files
+outputs/
+lora_model/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
