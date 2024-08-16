@@ -1,3 +1,5 @@
+# Inherited from 
+# https://github.com/Watchful1/PushshiftDumps/blob/master/scripts/to_csv.py
 import zstandard
 import os
 import json
