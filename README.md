@@ -1,4 +1,4 @@
-# RedditGPT
+# Reddit Chatbot
 
 This project focuses on finetuning the Llama 3 8B Instruct model on Reddit submissions and comments. Uses [Unsloth](https://github.com/unslothai/unsloth) for better training efficiency.
 
