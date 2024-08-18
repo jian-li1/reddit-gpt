@@ -65,6 +65,7 @@ cached_comments = Cache(10000)
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         log.error(f"Usage: {sys.argv[0]} <db file>")
+        sys.exit(1)
     
     db_file = sys.argv[1]
     # flairs = ["Question", "Need Advice"]
