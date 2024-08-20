@@ -3,6 +3,9 @@ from collections import OrderedDict
 import logging.handlers
 from datetime import datetime
 import sys
+import json
+import re
+import html
 
 log = logging.getLogger("bot")
 log.setLevel(logging.DEBUG)
@@ -59,21 +62,47 @@ def get_comment(id):
         cached_submissions[id] = comment = dict(comment)
     return comment
 
+# https://stackoverflow.com/questions/33404752/removing-emojis-from-a-string-in-python/49146722#49146722
+def remove_emoji(string):
+    emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           u"\U00002702-\U000027B0"
+                           u"\U000024C2-\U0001F251"
+                           "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', string)
+
+def clean_text(text):
+    text = remove_emoji(text)
+    text = re.sub(regex, '', text)
+    text = html.unescape(html.unescape(text))
+    # text = re.sub(r'edit:[ \n]?', '', text, flags=re.IGNORECASE)
+    return text
+
+# Removes URLs from text
+regex = r'\[.*?\]\(https?://[^\s\)]+\)|https?://[^\s\)]+|\(https?://[^\s\)]+\)'
+
 cached_submissions = Cache(10000)
 cached_comments = Cache(10000)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        log.error(f"Usage: {sys.argv[0]} <db file>")
+    if len(sys.argv) != 3:
+        log.error(f"Usage: {sys.argv[0]} <db file> <json file>")
         sys.exit(1)
     
     db_file = sys.argv[1]
     # flairs = ["Question", "Need Advice"]
 
+    output_file_path = sys.argv[2]
+    output_file = open(output_file_path, mode="w", encoding="utf-8")
+    entries = []
+
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     curr = conn.cursor()
-    curr.execute("CREATE TABLE IF NOT EXISTS train (id TEXT, output_id TEXT, input TEXT, output TEXT)")
+    # curr.execute("CREATE TABLE IF NOT EXISTS train (id TEXT, output_id TEXT, input TEXT, output TEXT)")
 
     batch_size = 10000
     offset = 0
@@ -98,21 +127,32 @@ if __name__ == "__main__":
             
             if parent and valid(row) and valid(parent):
                 input_text = f"{parent['title']}\n\n{parent['body']}".rstrip(None).rstrip() if row["parent_id"].startswith("t3") else parent["body"]
-                curr.execute("INSERT INTO train (id, output_id, input, output) VALUES (?, ?, ?, ?)",\
-                            (row["parent_id"], row["id"], input_text, row["body"]))
+                input_text = clean_text(input_text)
+                output_text = clean_text(row["body"])
+                # curr.execute("INSERT INTO train (id, output_id, input, output) VALUES (?, ?, ?, ?)",\
+                #             (row["parent_id"], row["id"], input_text, row["body"]))
+                entries.append({"id": row["parent_id"], "output_id": row["id"], "input": input_text, "output": output_text})
                 pairs += 1
             
             lines += 1
-            if pairs % 10000 == 0:
-                conn.commit()
-            if lines % 10000 == 0:
+            if len(entries) == 10000:
+                # conn.commit()
+                for entry in entries:
+                    output_file.write(json.dumps(entry)+"\n")
+                entries = []
+            if lines % 100000 == 0:
                 log.info(f"{row['created']} : {pairs:,} : {lines:,} : {(lines / total_lines) * 100:.0f}%")
             
         
         offset += batch_size
         curr.execute("SELECT * FROM comments LIMIT ? OFFSET ?", (batch_size, offset))
 
-    conn.commit()
-    log.info(f"Complete : {pairs:,}")
+    if len(entries) > 1:
+        # conn.commit()
+        for entry in entries:
+            output_file.write(json.dumps(entry)+"\n")
+        entries = []
+    log.info(f"Complete : {pairs:,} : {total_lines:,}")
+    output_file.close()
     curr.close()
     conn.close()
