@@ -97,12 +97,10 @@ if __name__ == "__main__":
 
     output_file_path = sys.argv[2]
     output_file = open(output_file_path, mode="w", encoding="utf-8")
-    entries = []
 
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     curr = conn.cursor()
-    # curr.execute("CREATE TABLE IF NOT EXISTS train (id TEXT, output_id TEXT, input TEXT, output TEXT)")
 
     batch_size = 10000
     offset = 0
@@ -129,17 +127,12 @@ if __name__ == "__main__":
                 input_text = f"{parent['title']}\n\n{parent['body']}".rstrip(None).rstrip() if row["parent_id"].startswith("t3") else parent["body"]
                 input_text = clean_text(input_text)
                 output_text = clean_text(row["body"])
-                # curr.execute("INSERT INTO train (id, output_id, input, output) VALUES (?, ?, ?, ?)",\
-                #             (row["parent_id"], row["id"], input_text, row["body"]))
-                entries.append({"id": row["parent_id"], "output_id": row["id"], "input": input_text, "output": output_text})
+                
+                entry = {"id": row["parent_id"], "output_id": row["id"], "input": input_text, "output": output_text}
+                output_file.write(json.dumps(entry)+"\n")
                 pairs += 1
             
             lines += 1
-            if len(entries) == 10000:
-                # conn.commit()
-                for entry in entries:
-                    output_file.write(json.dumps(entry)+"\n")
-                entries = []
             if lines % 100000 == 0:
                 log.info(f"{row['created']} : {pairs:,} : {lines:,} : {(lines / total_lines) * 100:.0f}%")
             
@@ -147,11 +140,6 @@ if __name__ == "__main__":
         offset += batch_size
         curr.execute("SELECT * FROM comments LIMIT ? OFFSET ?", (batch_size, offset))
 
-    if len(entries) > 1:
-        # conn.commit()
-        for entry in entries:
-            output_file.write(json.dumps(entry)+"\n")
-        entries = []
     log.info(f"Complete : {pairs:,} : {total_lines:,}")
     output_file.close()
     curr.close()
