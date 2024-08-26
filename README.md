@@ -25,10 +25,11 @@ python build_train.py <database file> <json file>
 
 The Jupyter notebook ``train.ipynb`` is used to load and train the base model. ``inference.ipynb`` is used to load and run inferences on the custom finefuned model.
 
-To run inferences on a graphical interface (powered by Gradio), run
+To run inferences on a web application (powered by Gradio), run
 ```
 python app.py
 ```
+and enter ``http://127.0.0.1:7860`` on the web browser.
 
 ## Relevant Resources
 * [Unsloth Github](https://github.com/unslothai/unsloth)
