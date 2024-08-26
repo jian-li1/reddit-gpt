@@ -8,6 +8,7 @@ This [torrent](https://academictorrents.com/details/20520c420c6c846f555523babc8c
 ## Usage
 Install the required libraries:
 ```
+chmod +x install.sh
 ./install.sh
 ```
 To extract the content of the submission and comment files to a SQLite database, run
@@ -22,6 +23,13 @@ Next, to create the train dataset, run
 python build_train.py <database file> <json file>
 ```
 
+The Jupyter notebook ``train.ipynb`` is used to load and train the base model. ``inference.ipynb`` is used to load and run inferences on the custom finefuned model.
+
+To run inferences on a graphical interface (powered by Gradio), run
+```
+python app.py
+```
+
 ## Relevant Resources
 * [Unsloth Github](https://github.com/unslothai/unsloth)
 * [Llama 3.1 Base 8b Model](https://huggingface.co/unsloth/Meta-Llama-3.1-8B-bnb-4bit)
@@ -34,3 +42,4 @@ python build_train.py <database file> <json file>
 * [Loading dataset from SQLite3 database](https://huggingface.co/docs/datasets/main/en/tabular_load#sqlite)
 * [Llama 3.1 Instruct Prompt Format](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1/#llama-3.1-instruct)
 * [Subreddit comments/submissions 2005-06 to 2023-12](https://academictorrents.com/details/20520c420c6c846f555523babc8c059e9daa8fc5)
+* [Gradio: Creating A Chatbot Fast](https://www.gradio.app/guides/creating-a-chatbot-fast)
