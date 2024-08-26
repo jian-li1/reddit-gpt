@@ -5,3 +5,4 @@ pip install jupyter
 pip install matplotlib
 pip install zstandard
 pip install sqlalchemy
+pip install gradio
