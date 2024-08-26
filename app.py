@@ -2,17 +2,17 @@ import gradio as gr
 from transformers import TextIteratorStreamer
 from threading import Thread
 
+model_name = "model"
+max_seq_length = 1024 # Choose any! We auto support RoPE Scaling internally!
+dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
+load_in_4bit = True # Use 4bit quantization to reduce memory usage. Can be False.
+
 min_tokens = 64
 max_tokens = 1024
 instructions = ""
 
 if gr.NO_RELOAD:
     from unsloth import FastLanguageModel
-
-    model_name = "model"
-    max_seq_length = 1024 # Choose any! We auto support RoPE Scaling internally!
-    dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
-    load_in_4bit = True # Use 4bit quantization to reduce memory usage. Can be False.
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name = model_name, # YOUR MODEL YOU USED FOR TRAINING
@@ -33,7 +33,6 @@ def generate_stream(message, history):
         return
     
     print("Prompt: "+prompt)
-    history.append(prompt)
     # Prepare the input messages
     msgs = [
         {"role": "system", "content": instructions},
@@ -67,21 +66,40 @@ def generate_stream(message, history):
     t = Thread(target=model.generate, kwargs=generate_kwargs)
     t.start()
 
+    # Stream response token by token
     partial_message = ""
-    history.append(partial_message)
     for new_token in text_streamer:
         if new_token != '<':
             partial_message += new_token
-            history[-1] = partial_message
             yield partial_message
+
+# JavaScript code to scroll to the bottom of the chatbox whenever a message is sent
+scroll_to_bottom = """
+async () => {
+    const submit_btn = document.querySelector('.lg.primary.svelte-cmf5ev');
+    const retry_btn = document.querySelector('button.sm.secondary.svelte-cmf5ev');
+    const chatbox = document.querySelector("div[aria-label='chatbot conversation']");
+    const textbox = document.querySelector("textarea[data-testid='textbox']");
+    submit_btn.addEventListener('click', () => chatbox.scrollTop = chatbox.scrollHeight);
+    retry_btn.addEventListener('click', () => chatbox.scrollTop = chatbox.scrollHeight );
+    textbox.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+    });
+}
+"""
 
 with gr.Blocks(theme="gradio/soft") as demo:
     gr.Markdown("<center><h1>Reddit Chatbot</h1></center>")
     gr.ChatInterface(
         generate_stream, 
-        chatbot = gr.Chatbot(label="Chatbot", scale=1, height="60vh"),
+        chatbot=gr.Chatbot(label="Chatbot", scale=1, height="60vh"),
         cache_examples=True,
+        concurrency_limit=None,
     )
+
+    demo.load(None, None, None, js=scroll_to_bottom)
 
 if __name__ == "__main__":
     demo.launch()
